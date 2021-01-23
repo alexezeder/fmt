@@ -14,8 +14,7 @@
 #include "gtest.h"
 
 // Check if  'if constexpr' is supported.
-#if (__cplusplus > 201402L) || \
-    (defined(_MSVC_LANG) && _MSVC_LANG > 201402L && _MSC_VER >= 1910)
+#ifdef __cpp_if_constexpr
 
 #  include <array>
 #  include <map>
