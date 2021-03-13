@@ -4,35 +4,14 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-18.04
     strategy:
+      fail-fast: false
       matrix:
-        cxx: [g++-4.8, g++-8, g++-10, clang++-9]
-        build_type: [Debug, Release]
-        std: [11]
-        os: [ubuntu-18.04]
+        cxx: [g++-6, g++-7, g++-8, g++-9, g++-10]
         include:
-          - cxx: g++-4.8
-            install: sudo apt install g++-4.8
-            os: ubuntu-18.04
-          - cxx: g++-8
-            std: 14
-            os: ubuntu-18.04
-          - cxx: g++-10
-            std: 17
-            os: ubuntu-18.04
-          - cxx: g++-10
-            std: 20
-            cxxflags: -DFMT_COMPILE_TIME_CHECKS=1
-            os: ubuntu-20.04
-          - cxx: clang++-9
-            std: 11
-            os: ubuntu-18.04
-          - cxx: clang++-9
-            build_type: Debug
-            fuzz: -DFMT_FUZZ=ON -DFMT_FUZZ_LINKMAIN=ON
-            std: 17
-            os: ubuntu-18.04
+          - cxx: g++-6
+            install: sudo apt install g++-6
 
     steps:
     - uses: actions/checkout@v2
@@ -40,22 +19,9 @@ jobs:
     - name: Create Build Environment
       run: |
         ${{matrix.install}}
-        cmake -E make_directory ${{runner.workspace}}/build
-
-    - name: Configure
-      working-directory: ${{runner.workspace}}/build
-      env:
-        CXX: ${{matrix.cxx}}
-        CXXFLAGS: ${{matrix.cxxflags}}
-      run: |
-        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.fuzz}} \
-              -DCMAKE_CXX_STANDARD=${{matrix.std}} -DFMT_DOC=OFF \
-              -DFMT_PEDANTIC=ON -DFMT_WERROR=ON $GITHUB_WORKSPACE
+        mkdir build
 
     - name: Build
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config ${{matrix.build_type}}
-
-    - name: Test
-      working-directory: ${{runner.workspace}}/build
-      run: ctest -C ${{matrix.build_type}}
+      working-directory: build
+      run: |
+        ${{matrix.cxx}} -isystem ../test/gtest -isystem ../test/gmock -isystem ../test/. -I../include -Wunused-but-set-parameter -O0 -std=gnu++1z -o compile-test.cc.o -c ../test/compile-test.cc
