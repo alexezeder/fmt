@@ -38,7 +38,7 @@ target_compile_definitions(gmock
 set(TEST_MAIN_SRC test-main.cc gtest-extra.cc gtest-extra.h util.cc)
 add_library(test-main STATIC ${TEST_MAIN_SRC})
 target_include_directories(test-main SYSTEM PUBLIC gtest gmock)
-target_link_libraries(test-main gmock fmt)
+target_link_libraries(test-main gmock fmt::fmt-header-only) # fixme: revert back to static library
 
 include(CheckCXXCompilerFlag)
 

@@ -695,21 +695,21 @@ template <typename T> class buffer {
   FMT_MSC_WARNING(suppress : 26495)
   buffer(size_t sz) FMT_NOEXCEPT : size_(sz), capacity_(sz) {}
 
-  buffer(T* p = nullptr, size_t sz = 0, size_t cap = 0) FMT_NOEXCEPT
+  constexpr buffer(T* p = nullptr, size_t sz = 0, size_t cap = 0) FMT_NOEXCEPT
       : ptr_(p),
         size_(sz),
         capacity_(cap) {}
 
-  ~buffer() = default;
+  constexpr ~buffer() = default;
 
   /** Sets the buffer data and capacity. */
-  void set(T* buf_data, size_t buf_capacity) FMT_NOEXCEPT {
+  constexpr void set(T* buf_data, size_t buf_capacity) FMT_NOEXCEPT {
     ptr_ = buf_data;
     capacity_ = buf_capacity;
   }
 
   /** Increases the buffer capacity to hold at least *capacity* elements. */
-  virtual void grow(size_t capacity) = 0;
+  virtual constexpr void grow(size_t capacity) = 0;
 
  public:
   using value_type = T;
@@ -725,23 +725,23 @@ template <typename T> class buffer {
   const T* end() const FMT_NOEXCEPT { return ptr_ + size_; }
 
   /** Returns the size of this buffer. */
-  size_t size() const FMT_NOEXCEPT { return size_; }
+  constexpr size_t size() const FMT_NOEXCEPT { return size_; }
 
   /** Returns the capacity of this buffer. */
-  size_t capacity() const FMT_NOEXCEPT { return capacity_; }
+  constexpr size_t capacity() const FMT_NOEXCEPT { return capacity_; }
 
   /** Returns a pointer to the buffer data. */
-  T* data() FMT_NOEXCEPT { return ptr_; }
+  constexpr T* data() FMT_NOEXCEPT { return ptr_; }
 
   /** Returns a pointer to the buffer data. */
-  const T* data() const FMT_NOEXCEPT { return ptr_; }
+  constexpr const T* data() const FMT_NOEXCEPT { return ptr_; }
 
   /** Clears this buffer. */
   void clear() { size_ = 0; }
 
   // Tries resizing the buffer to contain *count* elements. If T is a POD type
   // the new elements may not be initialized.
-  void try_resize(size_t count) {
+  constexpr void try_resize(size_t count) {
     try_reserve(count);
     size_ = count <= capacity_ ? count : capacity_;
   }
@@ -750,11 +750,11 @@ template <typename T> class buffer {
   // capacity by a smaller amount than requested but guarantees there is space
   // for at least one additional element either by increasing the capacity or by
   // flushing the buffer if it is full.
-  void try_reserve(size_t new_capacity) {
+  constexpr void try_reserve(size_t new_capacity) {
     if (new_capacity > capacity_) grow(new_capacity);
   }
 
-  void push_back(const T& value) {
+  constexpr void push_back(const T& value) {
     try_reserve(size_ + 1);
     ptr_[size_++] = value;
   }
@@ -762,8 +762,8 @@ template <typename T> class buffer {
   /** Appends data to the end of the buffer. */
   template <typename U> void append(const U* begin, const U* end);
 
-  template <typename I> T& operator[](I index) { return ptr_[index]; }
-  template <typename I> const T& operator[](I index) const {
+  template <typename I> constexpr T& operator[](I index) { return ptr_[index]; }
+  template <typename I> constexpr const T& operator[](I index) const {
     return ptr_[index];
   }
 };
@@ -1095,8 +1095,8 @@ template <typename Context> class value {
   constexpr FMT_INLINE value(unsigned long long val) : ulong_long_value(val) {}
   FMT_INLINE value(int128_t val) : int128_value(val) {}
   FMT_INLINE value(uint128_t val) : uint128_value(val) {}
-  FMT_INLINE value(float val) : float_value(val) {}
-  FMT_INLINE value(double val) : double_value(val) {}
+  constexpr FMT_INLINE value(float val) : float_value(val) {}
+  constexpr FMT_INLINE value(double val) : double_value(val) {}
   FMT_INLINE value(long double val) : long_double_value(val) {}
   constexpr FMT_INLINE value(bool val) : bool_value(val) {}
   constexpr FMT_INLINE value(char_type val) : char_value(val) {}
