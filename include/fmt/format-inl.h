@@ -1072,6 +1072,36 @@ class fp {
     *this = fp();
     return false;
   }
+
+  // Assigns d to this together with computing lower and upper boundaries,
+  // where a boundary is a value half way between the number and its predecessor
+  // (lower) or successor (upper). The upper boundary is normalized and lower
+  // has the same exponent but may be not normalized.
+  template <typename Double>
+  constexpr boundaries assign_with_boundaries(Double d) {
+    bool is_lower_closer = assign(d);
+    fp lower =
+        is_lower_closer ? fp((f << 2) - 1, e - 2) : fp((f << 1) - 1, e - 1);
+    // 1 in normalize accounts for the exponent shift above.
+    fp upper = normalize<1>(fp((f << 1) + 1, e - 1));
+    lower.f <<= lower.e - upper.e;
+    return boundaries{lower.f, upper.f};
+  }
+
+  template <typename Double>
+  constexpr boundaries assign_float_with_boundaries(Double d) {
+    assign(d);
+    constexpr int min_normal_e = std::numeric_limits<float>::min_exponent -
+                                 std::numeric_limits<double>::digits;
+    significand_type half_ulp = 1 << (std::numeric_limits<double>::digits -
+                                      std::numeric_limits<float>::digits - 1);
+    if (min_normal_e > e) half_ulp <<= min_normal_e - e;
+    fp upper = normalize<0>(fp(f + half_ulp, e));
+    fp lower = fp(
+        f - (half_ulp >> ((f == implicit_bit && e > min_normal_e) ? 1 : 0)), e);
+    lower.f <<= lower.e - upper.e;
+    return boundaries{lower.f, upper.f};
+  }
 };
 
 // Normalizes the value converted from double and multiplied by (1 << SHIFT).
@@ -2349,6 +2379,49 @@ constexpr void fallback_format(Double d, int num_digits, bool binary32,
   buf[num_digits - 1] = static_cast<char>('0' + digit);
 }
 
+// The shortest representation digit handler.
+struct grisu_shortest_handler {
+  char* buf;
+  int size;
+  // Distance between scaled value and upper bound (wp_W in Grisu3).
+  uint64_t diff;
+
+  constexpr digits::result on_start(uint64_t, uint64_t, uint64_t, int&) {
+    return digits::more;
+  }
+
+  // Decrement the generated number approaching value from above.
+  constexpr void round(uint64_t d, uint64_t divisor, uint64_t& remainder,
+                       uint64_t error) {
+    while (
+        remainder < d && error - remainder >= divisor &&
+        (remainder + divisor < d || d - remainder >= remainder + divisor - d)) {
+      --buf[size - 1];
+      remainder += divisor;
+    }
+  }
+
+  // Implements Grisu's round_weed.
+  constexpr digits::result on_digit(char digit, uint64_t divisor,
+                                    uint64_t remainder, uint64_t error, int exp,
+                                    bool integral) {
+    buf[size++] = digit;
+    if (remainder >= error) return digits::more;
+    uint64_t unit = integral ? 1 : data::powers_of_10_64[-exp];
+    uint64_t up = (diff - 1) * unit;  // wp_Wup
+    round(up, divisor, remainder, error);
+    uint64_t down = (diff + 1) * unit;  // wp_Wdown
+    if (remainder < down && error - remainder >= divisor &&
+        (remainder + divisor < down ||
+         down - remainder > remainder + divisor - down)) {
+      return digits::error;
+    }
+    return 2 * unit <= remainder && remainder <= error - 4 * unit
+               ? digits::done
+               : digits::error;
+  }
+};
+
 template <typename T>
 #ifdef FMT_HEADER_ONLY
 constexpr
@@ -2375,7 +2448,7 @@ constexpr
 
   if (!specs.use_grisu) return snprintf_float(value, precision, specs, buf);
 
-  if (precision < 0) {
+  if (precision < 0 && !is_constant_evaluated()) {
     // Use Dragonbox for the shortest format.
     if (specs.binary32) {
       auto dec = dragonbox::to_decimal(static_cast<float>(value));
@@ -2392,32 +2465,64 @@ constexpr
   int exp = 0;
   const int min_exp = -60;  // alpha in Grisu.
   int cached_exp10 = 0;     // K in Grisu.
-  fp normalized = normalize(fp(value));
-  const auto cached_pow = get_cached_power(
-      min_exp - (normalized.e + fp::significand_size), cached_exp10);
-  normalized = normalized * cached_pow;
-  // Limit precision to the maximum possible number of significant digits in an
-  // IEEE754 double because we don't need to generate zeros.
-  const int max_double_digits = 767;
-  if (precision > max_double_digits) precision = max_double_digits;
-  fixed_handler handler{buf.data(), 0, precision, -cached_exp10, fixed};
-  if (grisu_gen_digits(normalized, 1, exp, handler) == digits::error) {
-    exp += handler.size - cached_exp10 - 1;
-    fallback_format(value, handler.precision, specs.binary32, buf, exp);
-  } else {
-    exp += handler.exp10;
-    buf.try_resize(to_unsigned(handler.size));
-  }
-  if (!fixed && !specs.showpoint) {
-    // Remove trailing zeros.
-    auto num_digits = buf.size();
-    while (num_digits > 0 && buf[num_digits - 1] == '0') {
-      --num_digits;
-      ++exp;
+  if (precision < 0) {
+    fp fp_value;
+    auto boundaries = specs.binary32
+                          ? fp_value.assign_float_with_boundaries(value)
+                          : fp_value.assign_with_boundaries(value);
+    fp_value = normalize(fp_value);
+    // Find a cached power of 10 such that multiplying value by it will bring
+    // the exponent in the range [min_exp, -32].
+    const fp cached_pow = get_cached_power(
+        min_exp - (fp_value.e + fp::significand_size), cached_exp10);
+    // Multiply value and boundaries by the cached power of 10.
+    fp_value = fp_value * cached_pow;
+    boundaries.lower = multiply(boundaries.lower, cached_pow.f);
+    boundaries.upper = multiply(boundaries.upper, cached_pow.f);
+    FMT_ASSERT(min_exp <= fp_value.e && fp_value.e <= -32, "");
+    --boundaries.lower;  // \tilde{M}^- - 1 ulp -> M^-_{\downarrow}.
+    ++boundaries.upper;  // \tilde{M}^+ + 1 ulp -> M^+_{\uparrow}.
+    // Numbers outside of (lower, upper) definitely do not round to value.
+    grisu_shortest_handler handler{buf.data(), 0,
+                                   boundaries.upper - fp_value.f};
+    auto result =
+        grisu_gen_digits(fp(boundaries.upper, fp_value.e),
+                         boundaries.upper - boundaries.lower, exp, handler);
+    if (result == digits::error) {
+      exp += handler.size - cached_exp10 - 1;
+      fallback_format(value, 0, specs.binary32, buf, exp);
+      return exp;
     }
-    buf.try_resize(num_digits);
+    buf.try_resize(to_unsigned(handler.size));
+    return exp - cached_exp10;
+  } else {
+    fp normalized = normalize(fp(value));
+    const auto cached_pow = get_cached_power(
+        min_exp - (normalized.e + fp::significand_size), cached_exp10);
+    normalized = normalized * cached_pow;
+    // Limit precision to the maximum possible number of significant digits in
+    // an IEEE754 double because we don't need to generate zeros.
+    const int max_double_digits = 767;
+    if (precision > max_double_digits) precision = max_double_digits;
+    fixed_handler handler{buf.data(), 0, precision, -cached_exp10, fixed};
+    if (grisu_gen_digits(normalized, 1, exp, handler) == digits::error) {
+      exp += handler.size - cached_exp10 - 1;
+      fallback_format(value, handler.precision, specs.binary32, buf, exp);
+    } else {
+      exp += handler.exp10;
+      buf.try_resize(to_unsigned(handler.size));
+    }
+    if (!fixed && !specs.showpoint) {
+      // Remove trailing zeros.
+      auto num_digits = buf.size();
+      while (num_digits > 0 && buf[num_digits - 1] == '0') {
+        --num_digits;
+        ++exp;
+      }
+      buf.try_resize(num_digits);
+    }
+    return exp;
   }
-  return exp;
 }  // namespace detail
 
 template <typename T>

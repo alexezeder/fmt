@@ -2111,6 +2111,10 @@ constexpr OutputIt write(OutputIt out, T value, basic_format_specs<Char> specs,
 template <typename Char, typename OutputIt, typename T,
           FMT_ENABLE_IF(is_fast_float<T>::value)>
 constexpr OutputIt write(OutputIt out, T value) {
+  if (is_constant_evaluated()) {
+    return write(out, value, basic_format_specs<Char>());
+  }
+
   if (const_check(!is_supported_floating_point(value))) return out;
 
   using floaty = conditional_t<std::is_same<T, long double>::value, double, T>;

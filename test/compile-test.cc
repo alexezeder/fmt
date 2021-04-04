@@ -389,13 +389,13 @@ TEST(CompileTimeFormattingTest, String) {
 }
 
 TEST(CompileTimeFormattingTest, Float) {
-  //  EXPECT_EQ("0", test_format<2>(FMT_COMPILE("{}"), 0.0f));
+  EXPECT_EQ("0", test_format<2>(FMT_COMPILE("{}"), 0.0f));
   EXPECT_EQ("392.500000", test_format<11>(FMT_COMPILE("{0:f}"), 392.5f));
 
   EXPECT_EQ("0", test_format<2>(FMT_COMPILE("{:}"), 0.0));
   EXPECT_EQ("0.000000", test_format<9>(FMT_COMPILE("{:f}"), 0.0));
   EXPECT_EQ("0", test_format<2>(FMT_COMPILE("{:g}"), 0.0));
-  //  EXPECT_EQ("392.65", test_format<7>(FMT_COMPILE("{:}"), 392.65));
+  EXPECT_EQ("392.65", test_format<7>(FMT_COMPILE("{:}"), 392.65));
   EXPECT_EQ("392.65", test_format<7>(FMT_COMPILE("{:g}"), 392.65));
   EXPECT_EQ("392.65", test_format<7>(FMT_COMPILE("{:G}"), 392.65));
   EXPECT_EQ("4.9014e+06", test_format<11>(FMT_COMPILE("{:g}"), 4.9014e6));
