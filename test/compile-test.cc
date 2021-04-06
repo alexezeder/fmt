@@ -401,7 +401,6 @@ TEST(CompileTimeFormattingTest, Float) {
   EXPECT_EQ("4.9014e+06", test_format<11>(FMT_COMPILE("{:g}"), 4.9014e6));
   EXPECT_EQ("-392.650000", test_format<12>(FMT_COMPILE("{:f}"), -392.65));
   EXPECT_EQ("-392.650000", test_format<12>(FMT_COMPILE("{:F}"), -392.65));
-  //  EXPECT_EQ("42", test_format<3>(FMT_COMPILE("{:L}"), 42.0));
 
   EXPECT_EQ("3.926500e+02", test_format<13>(FMT_COMPILE("{0:e}"), 392.65));
   EXPECT_EQ("3.926500E+02", test_format<13>(FMT_COMPILE("{0:E}"), 392.65));
