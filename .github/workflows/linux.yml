@@ -34,6 +34,13 @@ jobs:
             fuzz: -DFMT_FUZZ=ON -DFMT_FUZZ_LINKMAIN=ON
             std: 17
             os: ubuntu-18.04
+          - cxx: clang++-11
+            std: 20
+            os: ubuntu-20.04
+          - cxx: clang++-11
+            std: 20
+            cxxflags: -stdlib=libc++
+            os: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
