@@ -32,12 +32,15 @@ jobs:
             std: 17
             os: ubuntu-18.04
           - cxx: clang++-11
+            build_type: Debug
             std: 20
             os: ubuntu-20.04
           - cxx: clang++-11
+            build_type: Debug
             std: 20
             cxxflags: -stdlib=libc++
             os: ubuntu-20.04
+            install: sudo apt install libc++-10-dev
 
     steps:
     - uses: actions/checkout@v2
