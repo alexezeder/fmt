@@ -2065,9 +2065,21 @@ constexpr OutputIt write(OutputIt out, T value, basic_format_specs<Char> specs,
   if (const_check(!is_supported_floating_point(value))) return out;
   float_specs fspecs = parse_float_type_spec(specs);
   fspecs.sign = specs.sign;
-  bool is_negative = (is_constant_evaluated() && value < T{}) ||  // fixme: -NaN
-                     (!is_constant_evaluated() && std::signbit(value));
-  if (is_negative) {  // value < 0 is false for NaN so use signbit.
+  bool is_negative;
+  if (is_constant_evaluated()) {
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+      using uint =
+          conditional_t<std::is_same<T, float>::value, uint32_t, uint64_t>;
+      auto bits = bit_cast<uint>(value);
+      is_negative = (bits & (uint(1) << (num_bits<uint>() - 1))) != 0;
+    } else {
+      FMT_ASSERT(false, "floating point type is not supported");
+    }
+  } else {
+    is_negative =
+        std::signbit(value);  // value < 0 is false for NaN so use signbit.
+  }
+  if (is_negative) {
     fspecs.sign = sign::minus;
     value = -value;
   } else if (fspecs.sign == sign::minus) {
