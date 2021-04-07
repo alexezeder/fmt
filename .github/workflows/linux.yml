@@ -40,7 +40,7 @@ jobs:
             std: 20
             cxxflags: -stdlib=libc++
             os: ubuntu-20.04
-            install: sudo apt install libc++-11-dev
+            install: sudo apt install libc++-11-dev libc++abi-11-dev
 
     steps:
     - uses: actions/checkout@v2
