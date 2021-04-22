@@ -13,15 +13,15 @@
 
 #include "format.h"
 
-#ifndef FMT_USE_NONTYPE_TEMPLATE_PARAMETERS
-#  if defined(__cpp_nontype_template_args) &&                \
-      ((FMT_GCC_VERSION >= 903 && __cplusplus >= 201709L) || \
-       __cpp_nontype_template_args >= 201911L)
+//#ifndef FMT_USE_NONTYPE_TEMPLATE_PARAMETERS
+//#  if defined(__cpp_nontype_template_args) &&                \
+//      ((FMT_GCC_VERSION >= 903 && __cplusplus >= 201709L) || \
+//       __cpp_nontype_template_args >= 201911L)
 #    define FMT_USE_NONTYPE_TEMPLATE_PARAMETERS 1
-#  else
-#    define FMT_USE_NONTYPE_TEMPLATE_PARAMETERS 0
-#  endif
-#endif
+//#  else
+//#    define FMT_USE_NONTYPE_TEMPLATE_PARAMETERS 0
+//#  endif
+//#endif
 
 FMT_BEGIN_NAMESPACE
 namespace detail {
