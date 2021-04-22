@@ -6,17 +6,15 @@ jobs:
   build:
     runs-on: ${{matrix.os}}
     strategy:
+      fail-fast: false
       matrix:
         # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
         # respectively: https://github.com/actions/virtual-environments.
         os: [windows-2016, windows-2019]
         platform: [Win32, x64]
         build_type: [Debug, Release]
+        standard: [11, 17, 20]
         include:
-          - os: windows-2016
-            standard: 11
-          - os: windows-2019
-            standard: 17
           - os: windows-2016
             platform: Win32
             build_type: Debug
@@ -24,6 +22,12 @@ jobs:
         exclude:
           - os: windows-2016
             platform: Win32
+          - os: windows-2016
+            standard: 17
+          - os: windows-2016
+            standard: 20
+          - os: windows-2019
+            standard: 11
 
     steps:
     - uses: actions/checkout@v2
@@ -47,4 +51,4 @@ jobs:
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest -C ${{matrix.build_type}}
+      run: ctest -C ${{matrix.build_type}} --verbose --output-on-failure
