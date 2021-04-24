@@ -333,7 +333,7 @@ using types =
     ::testing::Types<bool, signed char, unsigned char, short, unsigned short,
                      int, unsigned, long, unsigned long, long long,
                      unsigned long long, float, double, long double>;
-TYPED_TEST_CASE(numeric_arg_test, types);
+TYPED_TEST_SUITE(numeric_arg_test, types);
 
 template <typename T, fmt::enable_if_t<std::is_integral<T>::value, int> = 0>
 T test_value() {
@@ -511,7 +511,7 @@ struct non_string {};
 template <typename T> class IsStringTest : public testing::Test {};
 
 typedef ::testing::Types<char, wchar_t, char16_t, char32_t> StringCharTypes;
-TYPED_TEST_CASE(IsStringTest, StringCharTypes);
+TYPED_TEST_SUITE(IsStringTest, StringCharTypes);
 
 namespace {
 template <typename Char>
