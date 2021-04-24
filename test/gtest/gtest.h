@@ -6272,6 +6272,14 @@ class MatcherInterface : public MatcherDescriberInterface {
 
 namespace internal {
 
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 5
+template<typename T>
+using is_trivially_copy_constructible = std::has_trivial_copy_constructor<T>;
+#else
+template<typename T>
+using is_trivially_copy_constructible = std::is_trivially_copy_constructible<T>;
+#endif
+
 struct AnyEq {
   template <typename A, typename B>
   bool operator()(const A& a, const B& b) const { return a == b; }
@@ -6509,7 +6517,7 @@ class MatcherBase : private MatcherDescriberInterface {
   template <typename M>
   static constexpr bool IsInlined() {
     return sizeof(M) <= sizeof(Buffer) && alignof(M) <= alignof(Buffer) &&
-           std::is_trivially_copy_constructible<M>::value &&
+           is_trivially_copy_constructible<M>::value &&
            std::is_trivially_destructible<M>::value;
   }
 
