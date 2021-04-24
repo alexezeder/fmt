@@ -101,9 +101,9 @@ template <typename T> struct mock_buffer final : buffer<T> {
 
   mock_buffer(T* data = nullptr, size_t buf_capacity = 0) {
     this->set(data, buf_capacity);
-    ON_CALL(*this, do_grow(_)).WillByDefault(Invoke([](size_t capacity) {
-      return capacity;
-    }));
+    ON_CALL(*this, do_grow(_))
+        .WillByDefault(
+            Invoke([](size_t capacity) noexcept { return capacity; }));
   }
 };
 
