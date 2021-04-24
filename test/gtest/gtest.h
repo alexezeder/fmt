@@ -9474,11 +9474,14 @@ INSTANTIATE_TYPED_TEST_SUITE_P(My, FooTest, MyTypes);
 #define GTEST_NAME_GENERATOR_(TestSuiteName) \
   gtest_type_params_##TestSuiteName##_NameGenerator
 
-#define TYPED_TEST_SUITE(CaseName, Types, ...)                          \
-  typedef ::testing::internal::GenerateTypeList<Types>::type            \
-      GTEST_TYPE_PARAMS_(CaseName);                                     \
-  typedef ::testing::internal::NameGeneratorSelector<__VA_ARGS__>::type \
+#define TYPED_TEST_SUITE_WITH_NAME_GENERATOR(CaseName, Types, NameGenerator) \
+  typedef ::testing::internal::GenerateTypeList<Types>::type                 \
+      GTEST_TYPE_PARAMS_(CaseName);                                          \
+  typedef ::testing::internal::NameGeneratorSelector<NameGenerator>::type    \
       GTEST_NAME_GENERATOR_(CaseName)
+
+#define TYPED_TEST_SUITE(CaseName, Types) \
+  TYPED_TEST_SUITE_WITH_NAME_GENERATOR(CaseName, Types, )
 
 #define TYPED_TEST(CaseName, TestName)                                        \
   static_assert(sizeof(GTEST_STRINGIFY_(TestName)) > 1,                       \
