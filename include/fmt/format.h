@@ -336,7 +336,8 @@ inline auto get_data(Container& c) -> typename Container::value_type* {
 #if defined(_SECURE_SCL) && _SECURE_SCL
 // Make a checked iterator to avoid MSVC warnings.
 template <typename T> using checked_ptr = stdext::checked_array_iterator<T*>;
-template <typename T> auto make_checked(T* p, size_t size) -> checked_ptr<T> {
+template <typename T>
+constexpr auto make_checked(T* p, size_t size) -> checked_ptr<T> {
   return {p, size};
 }
 #else
