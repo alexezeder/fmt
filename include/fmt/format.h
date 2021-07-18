@@ -1805,6 +1805,29 @@ FMT_CONSTEXPR20 auto write_float(OutputIt out, const DecimalFP& fp,
   });
 }
 
+#ifdef __cpp_lib_bit_cast
+template <typename T, FMT_ENABLE_IF(is_fast_float<T>::value)>
+constexpr bool is_infinite_fast_float(T value) {
+  using floaty =
+      std::conditional_t<std::is_same<T, long double>::value, double, T>;
+  using uint = typename dragonbox::float_info<floaty>::carrier_uint;
+  constexpr auto significand_bits =
+      dragonbox::float_info<floaty>::significand_bits;
+  auto bits = std::bit_cast<uint>(value);
+  return (bits & exponent_mask<floaty>()) &&
+         !(bits & ((uint(1) << significand_bits) - 1));
+}
+
+template <typename T, FMT_ENABLE_IF(is_fast_float<T>::value)>
+constexpr bool is_finite_fast_float(T value) {
+  using floaty =
+      std::conditional_t<std::is_same<T, long double>::value, double, T>;
+  using uint = typename dragonbox::float_info<floaty>::carrier_uint;
+  auto bits = std::bit_cast<uint>(value);
+  return (bits & exponent_mask<floaty>()) != exponent_mask<floaty>();
+}
+#endif
+
 template <typename Char, typename OutputIt, typename T,
           FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 FMT_CONSTEXPR20 auto write(OutputIt out, T value,
@@ -1839,8 +1862,19 @@ FMT_CONSTEXPR20 auto write(OutputIt out, T value,
     fspecs.sign = sign::none;
   }
 
-  if (!std::isfinite(value))
-    return write_nonfinite(out, std::isinf(value), specs, fspecs);
+#if defined(__cpp_lib_bit_cast) && defined(__cpp_if_constexpr)
+  if (is_constant_evaluated()) {
+    if constexpr (is_fast_float<T>::value) {
+      if (!is_finite_fast_float(value))
+        return write_nonfinite(out, is_infinite_fast_float(value), specs,
+                               fspecs);
+    }
+  } else
+#endif
+  {
+    if (!std::isfinite(value))
+      return write_nonfinite(out, std::isinf(value), specs, fspecs);
+  }
 
   if (specs.align == align::numeric && fspecs.sign) {
     auto it = reserve(out, 1);
