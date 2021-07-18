@@ -378,14 +378,16 @@ struct accumulator {
   uint64_t lower;
   uint64_t upper;
 
-  accumulator() : lower(0), upper(0) {}
-  explicit operator uint32_t() const { return static_cast<uint32_t>(lower); }
+  FMT_CONSTEXPR accumulator() : lower(0), upper(0) {}
+  FMT_CONSTEXPR explicit operator uint32_t() const {
+    return static_cast<uint32_t>(lower);
+  }
 
-  void operator+=(uint64_t n) {
+  FMT_CONSTEXPR void operator+=(uint64_t n) {
     lower += n;
     if (lower < n) ++upper;
   }
-  void operator>>=(int shift) {
+  FMT_CONSTEXPR void operator>>=(int shift) {
     FMT_ASSERT(shift == 32, "");
     (void)shift;
     lower = (upper << 32) | (lower >> 32);
