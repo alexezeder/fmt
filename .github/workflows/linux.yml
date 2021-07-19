@@ -7,8 +7,42 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        cxx: [g++-11]
+        cxx: [g++-4.8, g++-10, clang++-9]
+        build_type: [Debug, Release]
+        std: [11]
+        os: [ubuntu-18.04]
         include:
+          - cxx: g++-4.8
+            install: sudo apt install g++-4.8
+            os: ubuntu-18.04
+          - cxx: g++-8
+            build_type: Debug
+            std: 14
+            install: sudo apt install g++-8
+            os: ubuntu-18.04
+          - cxx: g++-10
+            build_type: Debug
+            std: 17
+            os: ubuntu-18.04
+          - cxx: g++-10
+            build_type: Debug
+            std: 20
+            os: ubuntu-20.04
+          - cxx: clang++-9
+            build_type: Debug
+            fuzz: -DFMT_FUZZ=ON -DFMT_FUZZ_LINKMAIN=ON
+            std: 17
+            os: ubuntu-18.04
+          - cxx: clang++-11
+            build_type: Debug
+            std: 20
+            os: ubuntu-20.04
+          - cxx: clang++-11
+            build_type: Debug
+            std: 20
+            cxxflags: -stdlib=libc++
+            os: ubuntu-20.04
+            install: sudo apt install libc++-11-dev libc++abi-11-dev
           - cxx: g++-11
             build_type: Debug
             std: 20
